@@ -1,0 +1,379 @@
+import logging
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+
+# Включаем логирование
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+
+# Токен, полученный от BotFather
+TOKEN = '7027633111:AAGoS4O6J_ZWi80nZ7ZwHO-ssFY4s22iZdQ'  # Замените 'YOUR_TOKEN_HERE' на ваш токен
+
+# Словарь с описаниями типов личности
+PERSONALITY_DESCRIPTIONS = {
+    'type1': 'Описание личности типа 1...',
+    'type2': 'Описание личности типа 2...',
+    'type3': 'Описание личности типа 3...',
+    'type4': 'Описание личности типа 4...',
+    'type5': 'Описание личности типа 5...',
+    'type6': 'Описание личности типа 6...',
+    'type7': 'Описание личности типа 7...',
+    'type8': 'Описание личности типа 8...',
+}
+
+# Ссылки на более подробное описание каждого типа личности
+PERSONALITY_LINKS = {
+    'type1': 'https://t.me/CaltOf/103',
+    'type2': 'https://t.me/CaltOf/105',
+    'type3': 'https://t.me/CaltOf/107',
+    'type4': 'https://t.me/CaltOf/109',
+    'type5': 'https://t.me/CaltOf/111',
+    'type6': 'https://t.me/CaltOf/113',
+    'type7': 'https://t.me/CaltOf/115',
+    'type8': 'https://t.me/CaltOf/117',
+}
+
+# Названия типов личности
+PERSONALITY_NAMES = {
+    'type1': '💬Мастер слова: Вербально-лингвистический',
+    'type2': '🧠Законы мысли: Логико-математический',
+    'type3': '🎲Формы и пространство: Пространственный',
+    'type4': '🎼Гармония звуков: Музыкальный тип',
+    'type5': '🤸‍♂️Искусство движения: Кинестетический',
+    'type6': '🗣️Мастера общения: Интерперсональный',
+    'type7': '🧘‍♂️Глубины души: Интраперсональный',
+    'type8': '🧬Познание природы: Естественно-научный',
+}
+
+# Словарь с описаниями комбинаций типов личности
+COMBINATION_DESCRIPTIONS = {
+    ('type1', 'type2', 'type3'): {
+        'link': 'https://t.me/CaltOf/124',
+        'name': 'Аналитик-коммуникатор'
+    },
+    ('type1', 'type2', 'type4'): {
+        'link': 'https://t.me/CaltOf/126',
+        'name': 'Музыкально-аналитический коммуникатор'
+    },
+    ('type1', 'type2', 'type5'): {
+        'link': 'https://t.me/CaltOf/128',
+        'name': 'Универсальный аналитик'
+    },
+    ('type1', 'type2', 'type6'): {
+        'link': 'https://t.me/CaltOf/130',
+        'name': 'Аналитический лидер'
+    },
+    ('type1', 'type2', 'type7'): {
+        'link': 'https://t.me/CaltOf/132',
+        'name': 'Аналитический философ'
+    },
+    ('type1', 'type2', 'type8'): {
+        'link': 'https://t.me/CaltOf/134',
+        'name': 'Научный Аналитик'
+    },
+    ('type1', 'type3', 'type4'): {
+        'link': 'https://t.me/CaltOf/136',
+        'name': 'Творческий музыкальный писатель'
+    },
+    ('type1', 'type3', 'type5'): {
+        'link': 'https://t.me/CaltOf/138',
+        'name': 'Творческий визуальный танцор'
+    },
+    ('type1', 'type3', 'type6'): {
+        'link': 'https://t.me/CaltOf/140',
+        'name': 'Эмоциональный коммуникатор'
+    },
+    ('type1', 'type3', 'type7'): {
+        'link': 'https://t.me/CaltOf/142',
+        'name': 'Творческий визуальный медитатор'
+    },
+    ('type1', 'type3', 'type8'): {
+        'link': 'https://t.me/CaltOf/144',
+        'name': 'Коммуникативный исследователь'
+    },
+    ('type1', 'type4', 'type5'): {
+        'link': 'https://t.me/CaltOf/146',
+        'name': 'Творческий экспрессивный коммуникатор'
+    },
+    ('type1', 'type4', 'type6'): {
+        'link': 'https://t.me/CaltOf/148',
+        'name': 'Эмпатичный коммуникатор'
+    },
+    ('type1', 'type4', 'type7'): {
+        'link': 'https://t.me/CaltOf/150',
+        'name': 'Творческий музыкальный медитатор'
+    },
+    ('type1', 'type4', 'type8'): {
+        'link': 'https://t.me/CaltOf/152',
+        'name': 'Творческий музыкальный биолог'
+    },
+    ('type1', 'type5', 'type6'): {
+        'link': 'https://t.me/CaltOf/154',
+        'name': 'Творческий спортивный коммуникатор'
+    },
+    ('type1', 'type5', 'type7'): {
+        'link': 'https://t.me/CaltOf/156',
+        'name': 'Эмоционально-социальный коммуникатор'
+    },
+    ('type1', 'type5', 'type8'): {
+        'link': 'https://t.me/CaltOf/158',
+        'name': 'Аналитический научный практик'
+    },
+    ('type1', 'type6', 'type7'): {
+        'link': 'https://t.me/CaltOf/160',
+        'name': 'Эмпатичный визионер'
+    },
+    ('type1', 'type6', 'type8'): {
+        'link': 'https://t.me/CaltOf/162',
+        'name': 'Творческий коммуникативный учёный'
+    },
+    ('type1', 'type7', 'type8'): {
+        'link': 'https://t.me/CaltOf/164',
+        'name': 'Творческий лингвистический философ'
+    },
+    ('type2', 'type3', 'type4'): {
+        'link': 'https://t.me/CaltOf/166',
+        'name': 'Аналитический визуальный музыкант'
+    },
+    ('type2', 'type3', 'type5'): {
+        'link': 'https://t.me/CaltOf/168',
+        'name': 'Аналитический визуальный тренер'
+    },
+    ('type2', 'type3', 'type6'): {
+        'link': 'https://t.me/CaltOf/170',
+        'name': 'Аналитический визуальный лидер'
+    },
+    ('type2', 'type3', 'type7'): {
+        'link': 'https://t.me/CaltOf/172',
+        'name': 'Аналитический визуальный медитатор'
+    },
+    ('type2', 'type3', 'type8'): {
+        'link': 'https://t.me/CaltOf/174',
+        'name': 'Аналитический научный визуализатор'
+    },
+    ('type2', 'type4', 'type5'): {
+        'link': 'https://t.me/CaltOf/176',
+        'name': 'Ритмичный аналитик-двигатель'
+    },
+    ('type2', 'type4', 'type6'): {
+        'link': 'https://t.me/CaltOf/178',
+        'name': 'Творческий гармонизатор'
+    },
+    ('type2', 'type4', 'type7'): {
+        'link': 'https://t.me/CaltOf/180',
+        'name': 'Аналитический музыкальный медитатор'
+    },
+    ('type2', 'type4', 'type8'): {
+        'link': 'https://t.me/CaltOf/182',
+        'name': 'Гармонический Анализатор'
+    },
+    ('type2', 'type5', 'type6'): {
+        'link': 'https://t.me/CaltOf/184',
+        'name': 'Аналитический спортивный коммуникатор'
+    },
+    ('type2', 'type5', 'type7'): {
+        'link': 'https://t.me/CaltOf/186',
+        'name': 'Аналитический физический медитатор'
+    },
+    ('type2', 'type5', 'type8'): {
+        'link': 'https://t.me/CaltOf/188',
+        'name': 'Научно-кинестетический аналитик'
+    },
+    ('type2', 'type6', 'type7'): {
+        'link': 'https://t.me/CaltOf/190',
+        'name': 'Аналитический коммуникативный медитатор'
+    },
+    ('type2', 'type6', 'type8'): {
+        'link': 'https://t.me/CaltOf/192',
+        'name': 'Рациональный созерцатель'
+    },
+    ('type2', 'type7', 'type8'): {
+        'link': 'https://t.me/CaltOf/194',
+        'name': 'Философический Аналитик'
+    },
+    ('type3', 'type4', 'type5'): {
+        'link': 'https://t.me/CaltOf/196',
+        'name': 'Творческий Сенсор'
+    },
+    ('type3', 'type4', 'type6'): {
+        'link': 'https://t.me/CaltOf/198',
+        'name': 'Гармонический Со-Творец'
+    },
+    ('type3', 'type4', 'type7'): {
+        'link': 'https://t.me/CaltOf/200',
+        'name': 'Творческий трехмерный медитатор'
+    },
+    ('type3', 'type4', 'type8'): {
+        'link': 'https://t.me/CaltOf/202',
+        'name': 'Гармоничный Инноватор'
+    },
+    ('type3', 'type5', 'type6'): {
+        'link': 'https://t.me/CaltOf/204',
+        'name': 'Координирующий Лидер'
+    },
+    ('type3', 'type5', 'type7'): {
+        'link': 'https://t.me/CaltOf/206',
+        'name': 'Интуитивный Динамист'
+    },
+    ('type3', 'type5', 'type8'): {
+        'link': 'https://t.me/CaltOf/208',
+        'name': 'Эко-динамичный Визуализатор'
+    },
+    ('type3', 'type6', 'type7'): {
+        'link': 'https://t.me/CaltOf/210',
+        'name': 'Творческий коммуникативный медитатор'
+    },
+    ('type3', 'type6', 'type8'): {
+        'link': 'https://t.me/CaltOf/212',
+        'name': 'Творческий научный коммуникатор'
+    },
+    ('type3', 'type7', 'type8'): {
+        'link': 'https://t.me/CaltOf/214',
+        'name': 'Интроспективный научный визуализатор'
+    },
+    ('type4', 'type5', 'type6'): {
+        'link': 'https://t.me/CaltOf/216',
+        'name': 'Социальный кинестетический музыкант'
+    },
+    ('type4', 'type5', 'type7'): {
+        'link': 'https://t.me/CaltOf/218',
+        'name': 'Музыкально-кинестетический интроспектив'
+    },
+    ('type4', 'type5', 'type8'): {
+        'link': 'https://t.me/CaltOf/220',
+        'name': 'Музыкально-кинестетический натуралист'
+    },
+    ('type4', 'type6', 'type7'): {
+        'link': 'https://t.me/CaltOf/222',
+        'name': 'Эмпатичный музыкальный медитатор'
+    },
+    ('type4', 'type6', 'type8'): {
+        'link': 'https://t.me/CaltOf/224',
+        'name': 'Музыкальный научный коммуникатор'
+    },
+    ('type4', 'type7', 'type8'): {
+        'link': 'https://t.me/CaltOf/226',
+        'name': 'Музыкальный исследователь-созерцатель'
+    },
+    ('type5', 'type6', 'type7'): {
+        'link': 'https://t.me/CaltOf/228',
+        'name': 'Эмпатичный кинестетический исследователь'
+    },
+    ('type5', 'type6', 'type8'): {
+        'link': 'https://t.me/CaltOf/230',
+        'name': 'Эмпатичный научный исследователь'
+    },
+    ('type5', 'type7', 'type8'): {
+        'link': 'https://t.me/CaltOf/232',
+        'name': 'Самоаналитический природный исследователь'
+    },
+    ('type6', 'type7', 'type8'): {
+        'link': 'https://t.me/CaltOf/234',
+        'name': 'Эмпатичный научный исследователь'
+    },
+    # Добавьте остальные комбинации
+}
+
+
+# Начальное приветствие
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_first_name = update.effective_user.first_name
+    context.user_data['selected_types'] = []
+    message = (
+        f"Привет, {user_first_name}! Я ваш бот и я помогу определить ваш тип личности. Существует 8 типов личности:\n"
+        "Вы можете нажать на любую кнопку, чтобы узнать больше о каждом типе:\n"
+    )
+    keyboard = [
+        [InlineKeyboardButton(PERSONALITY_NAMES[f'type{i}'], url=PERSONALITY_LINKS[f'type{i}'])]
+        for i in range(1, 9)
+    ]
+    # Изменяем текст кнопки, добавляя эмодзи для выделения
+    keyboard.append([InlineKeyboardButton("🚀 Начать тест 🚀", callback_data='start_test')])
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    if update.message:
+        await update.message.reply_text(message, reply_markup=reply_markup)
+    elif update.callback_query:
+        await update.callback_query.edit_message_text(message, reply_markup=reply_markup)
+
+
+# Функция для генерации клавиатуры с отмеченными кнопками
+def generate_keyboard(selected_types):
+    keyboard = []
+    for i in range(1, 9):
+        type_key = f'type{i}'
+        text = PERSONALITY_NAMES[type_key]
+        if type_key in selected_types:
+            text += ' ✓'
+        keyboard.append([InlineKeyboardButton(text, callback_data=type_key)])
+    return keyboard
+
+
+# Обработчик выбора типов личности
+async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+
+    selected_type = query.data
+
+    if selected_type == 'retry':
+        context.user_data['selected_types'] = []
+        await start(update, context)
+        return
+    elif selected_type == 'start_test':
+        keyboard = generate_keyboard([])
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(
+            text="Пожалуйста, выберите 3 типа, которые вам подходят больше всего.",
+            reply_markup=reply_markup
+        )
+        return
+
+    # Сохраняем выбранные типы в контексте пользователя
+    if 'selected_types' not in context.user_data:
+        context.user_data['selected_types'] = []
+
+    if selected_type not in context.user_data['selected_types']:
+        context.user_data['selected_types'].append(selected_type)
+
+    # Проверяем, выбрал ли пользователь 3 типа
+    if len(context.user_data['selected_types']) == 3:
+        selected_types = tuple(sorted(context.user_data['selected_types']))
+        if selected_types in COMBINATION_DESCRIPTIONS:
+            combination = COMBINATION_DESCRIPTIONS[selected_types]
+            link = combination['link']
+            name = combination['name']
+            keyboard = [[InlineKeyboardButton(name, url=link)]]
+        else:
+            name = "Комбинация не найдена"
+            link = "https://example.com/default"  # ссылка по умолчанию
+            keyboard = [[InlineKeyboardButton(name, url=link)]]
+        # Добавляем кнопку для повторного прохождения теста
+        keyboard.append([InlineKeyboardButton("Пройти тест заново", callback_data='retry')])
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(text="Ваш тип личности:", reply_markup=reply_markup)
+    else:
+        keyboard = generate_keyboard(context.user_data['selected_types'])
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(
+            text=f"Вы выбрали тип {PERSONALITY_NAMES[selected_type]}. Пожалуйста, выберите еще {3 - len(context.user_data['selected_types'])} типа.",
+            reply_markup=reply_markup
+        )
+
+
+def main() -> None:
+    # Создаем объект приложения и передаем ему токен
+    application = Application.builder().token(TOKEN).build()
+
+    # Регистрируем обработчики команд
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CallbackQueryHandler(button))
+
+    # Запускаем бота
+    application.run_polling()
+
+
+if __name__ == '__main__':
+    main()
